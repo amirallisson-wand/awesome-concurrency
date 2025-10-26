@@ -46,7 +46,9 @@ cmake --build build --target format
 
 See [src/thread/sync/](src/thread/sync/) for detailed documentation.
 
-- **MCS Spinlock** - Scalable queue-based spinlock with FIFO ordering
+- **MCS Spinlock** - Scalable queue-based spinlock with FIFO ordering and minimal cache traffic
+- **Ticket Lock** - Simple fair spinlock using ticket-based FIFO ordering
+- **TTAS Spinlock** - Test-and-Test-and-Set spinlock with reduced cache coherence traffic
 
 ### Utilities
 

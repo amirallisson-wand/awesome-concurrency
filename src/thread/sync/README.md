@@ -6,7 +6,7 @@ This directory contains implementations of various synchronization primitives fo
 
 **Motivated by**
 
-[Linux Kernel MCS Spinlock implementation](`https://github.com/torvalds/linux/blob/master/kernel/locking/mcs_spinlock.h`)
+[Linux Kernel MCS Spinlock implementation](https://github.com/torvalds/linux/blob/master/kernel/locking/mcs_spinlock.h)
 
 **File:** [`mcs_spinlock.hpp`](mcs_spinlock.hpp)
 
@@ -67,11 +67,185 @@ See [`examples/sync/mcs_example.cpp`](../../../examples/sync/mcs_example.cpp) fo
 
 - Original Paper: ["Algorithms for Scalable Synchronization on Shared-Memory Multiprocessors"](https://www.cs.rochester.edu/~scott/papers/1991_TOCS_synch.pdf) by John M. Mellor-Crummey and Michael L. Scott (1991)
 
+---
+
+## Ticket Lock
+
+**File:** [`ticket_lock.hpp`](ticket_lock.hpp)
+
+### Overview
+
+Ticket Lock is a simple and fair spinlock that uses a ticket-based algorithm. Threads take a ticket and wait until their number is called, ensuring strict FIFO ordering.
+
+### Key Features
+
+* **FIFO Fairness** — Threads acquire the lock in the exact order they requested it, preventing starvation
+* **Simple Implementation** — Uses only two atomic counters, making it easy to understand and verify
+* **Bounded Space** — O(1) space per lock (no per-thread nodes needed)
+* **BasicLockable Concept** — Implements standard `lock()`, `try_lock()`, and `unlock()` interface
+* **Predictable Behavior** — Deterministic lock acquisition order
+
+### How It Works
+
+The lock maintains two atomic counters:
+1. **`next_free_ticket_`** — Counter that dispenses tickets to arriving threads
+2. **`owner_ticket_`** — Current ticket number that can acquire the lock
+
+Algorithm:
+1. Thread atomically increments `next_free_ticket_` and receives a ticket number
+2. Thread spins until `owner_ticket_` equals its ticket number
+3. On unlock, `owner_ticket_` is incremented, allowing the next thread to proceed
+
+### Usage
+
+```cpp
+#include "thread/sync/ticket_lock.hpp"
+
+thread::sync::TicketLock lock;
+int shared_data = 0;
+
+// With std::lock_guard
+{
+    std::lock_guard<thread::sync::TicketLock> guard(lock);
+    ++shared_data;
+}
+
+// Manual lock/unlock
+lock.lock();
+++shared_data;
+lock.unlock();
+
+// Try lock
+if (lock.try_lock()) {
+    ++shared_data;
+    lock.unlock();
+}
+```
+
+### Performance Characteristics
+
+* **Low Contention**: Good performance, similar to simple spinlocks
+* **High Contention**: Better than naive spinlocks but worse than MCS (all threads spin on same cache line)
+* **Fairness**: Strict FIFO ordering prevents starvation
+* **Memory**: O(1) per lock (2 atomic counters)
+
+### When to Use
+
+**Good for:**
+- When strict FIFO fairness is required
+- Simple use cases where code clarity is important
+- Moderate contention scenarios
+- When per-thread storage overhead is a concern
+
+**Avoid when:**
+- Very high contention (MCS scales better)
+- Lock is held for long periods (use mutex instead)
+- Priority inversion is a concern
+
+### Tests
+
+See [`tests/sync/ticket_lock_test.cpp`](../../../tests/sync/ticket_lock_test.cpp) for comprehensive test suite.
+
+---
+
+## TTAS Spinlock (Test-and-Test-and-Set)
+
+**File:** [`ttas_spinlock.hpp`](ttas_spinlock.hpp)
+
+### Overview
+
+TTAS (Test-and-Test-and-Set) is an improved spinlock that reduces cache coherence traffic by performing a read-only check before attempting an atomic compare-exchange. This optimization significantly improves performance under contention compared to naive Test-and-Set (TAS) spinlocks.
+
+### Key Features
+
+* **Reduced Cache Traffic** — Read-only spinning reduces cache coherence messages
+* **Fast Uncontended Path** — Single compare-exchange when lock is available
+* **Simple and Efficient** — Minimal overhead with good performance characteristics
+* **BasicLockable Concept** — Standard lock interface compatible with `std::lock_guard`
+* **No Fairness Guarantees** — Lock acquisition order is non-deterministic
+
+### How It Works
+
+The algorithm uses two-phase acquisition:
+
+1. **Test Phase**: Read the lock state with `memory_order_relaxed` (no cache line invalidation)
+2. **Test-and-Set Phase**: When lock appears free, attempt atomic compare-exchange
+
+This approach keeps the cache line in shared state during spinning, only generating invalidation traffic when the lock becomes available.
+
+### Usage
+
+```cpp
+#include "thread/sync/ttas_spinlock.hpp"
+
+thread::sync::TASSpinLock lock;
+int shared_data = 0;
+
+// With std::lock_guard
+{
+    std::lock_guard<thread::sync::TASSpinLock> guard(lock);
+    ++shared_data;
+}
+
+// Manual lock/unlock
+lock.lock();
+++shared_data;
+lock.unlock();
+
+// Try lock
+if (lock.try_lock()) {
+    ++shared_data;
+    lock.unlock();
+}
+```
+
+### Performance Characteristics
+
+* **Low Contention**: Excellent performance, similar to native atomic operations
+* **Medium Contention**: Good performance due to reduced cache traffic
+* **High Contention**: Degrades under extreme contention (thundering herd on unlock)
+* **Fairness**: No fairness guarantees, potential for starvation
+* **Memory**: O(1) per lock (single atomic bool)
+
+### When to Use
+
+**Good for:**
+- Low to medium contention scenarios
+- Very short critical sections
+- When lock overhead must be minimal
+- When fairness is not required
+
+**Avoid when:**
+- Fairness is important (use Ticket or MCS lock)
+- High contention expected (use MCS lock)
+- Risk of starvation is unacceptable
+- Critical sections are long (use mutex)
+
+### Tests
+
+See [`tests/sync/ttas_spinlock_test.cpp`](../../../tests/sync/ttas_spinlock_test.cpp) for comprehensive test suite.
+
+---
+
+## Comparison
+
+| Feature | MCS | Ticket Lock | TTAS |
+|---------|-----|-------------|------|
+| Fairness | ✅ FIFO | ✅ FIFO | ❌ None |
+| Scalability | ✅ Excellent | ⚠️ Moderate | ⚠️ Moderate |
+| Memory/Lock | O(1) + O(1)/thread | O(1) | O(1) |
+| Complexity | High | Low | Low |
+| Cache Traffic | Minimal | High | Medium |
+| Best For | High contention | Fair + simple | Low contention |
+
+---
+
 ## Future Implementations
 
 Planned synchronization primitives:
 - **CLH Spinlock** - Similar to MCS but using implicit queue
-- **Ticket Lock** - Simple fair spinlock with bounded space
 - **Reader-Writer Locks** - Allow multiple readers or single writer
 - **Seqlock** - Optimistic read lock for data structures
-
+- **Three-state mutex**
+- **Condition variable**
+- **Semaphore**
