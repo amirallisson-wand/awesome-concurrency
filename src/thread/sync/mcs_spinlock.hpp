@@ -11,7 +11,9 @@ public:
     friend class QueueSpinLock;
 
   public:
-    explicit Guard(QueueSpinLock& host) : host_(host) { host_.Acquire(this); }
+    explicit Guard(QueueSpinLock& host) : host_(host) {
+      host_.Acquire(this);
+    }
 
     // Non-copyable
     Guard(const Guard&) = delete;
@@ -21,7 +23,9 @@ public:
     Guard(Guard&&) = delete;
     Guard& operator=(Guard&&) = delete;
 
-    ~Guard() { host_.Release(this); }
+    ~Guard() {
+      host_.Release(this);
+    }
 
   private:
     QueueSpinLock& host_;
@@ -32,7 +36,7 @@ public:
 private:
   void Enqueue(Guard* waiter) {
     // Phase 1: Acquire the tail
-    // synchronize with prior releases and future acquires of tail_
+    // synchronizes-with prior releases and future acquires of tail_
     auto prev_tail = tail_.exchange(waiter, std::memory_order_acq_rel);
     if (prev_tail == nullptr) {
       waiter->is_owner_.store(true, std::memory_order_release);
@@ -45,7 +49,7 @@ private:
 
   void Dequeue(Guard* waiter) {
     auto old_waiter = waiter;
-    // synchronize with prior releases and future acquires of tail_
+    // synchronizes-with prior releases and future acquires of tail_
     if (tail_.compare_exchange_strong(
           /* expected */ old_waiter,
           /* desired */ nullptr,
@@ -74,7 +78,9 @@ private:
     }
   }
 
-  void Release(Guard* owner) { Dequeue(owner); }
+  void Release(Guard* owner) {
+    Dequeue(owner);
+  }
 
 private:
   std::atomic<Guard*> tail_{nullptr};

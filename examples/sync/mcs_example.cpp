@@ -7,14 +7,17 @@
 
 class SharedCounter {
 public:
-  explicit SharedCounter(int initial_value = 0) : value_(initial_value) {}
+  explicit SharedCounter(int initial_value = 0) : value_(initial_value) {
+  }
 
   void Increment() {
     thread::sync::QueueSpinLock::Guard guard{lock_};
     ++value_;
   }
 
-  int GetValue() const { return value_; }
+  int GetValue() const {
+    return value_;
+  }
 
 private:
   thread::sync::QueueSpinLock lock_;
@@ -28,7 +31,8 @@ struct BenchmarkConfig {
 
 class BenchmarkRunner {
 public:
-  explicit BenchmarkRunner(const BenchmarkConfig& config) : config_(config) {}
+  explicit BenchmarkRunner(const BenchmarkConfig& config) : config_(config) {
+  }
 
   void Run() {
     PrintHeader();
