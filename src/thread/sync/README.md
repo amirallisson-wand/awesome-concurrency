@@ -6,7 +6,7 @@ This directory contains implementations of various synchronization primitives fo
 
 **Motivated by**
 
-Linux Kernel MCS Spinlock implementation: `https://github.com/torvalds/linux/blob/master/kernel/locking/mcs_spinlock.h`
+[Linux Kernel MCS Spinlock implementation](`https://github.com/torvalds/linux/blob/master/kernel/locking/mcs_spinlock.h`)
 
 **File:** [`mcs_spinlock.hpp`](mcs_spinlock.hpp)
 
@@ -16,11 +16,12 @@ The MCS (Mellor-Crummey and Scott) spinlock is a scalable queue-based spinlock t
 
 ### Key Features
 
-- **FIFO Ordering**: Threads acquire the lock in the order they request it, providing fairness
-- **Cache Efficiency**: Each thread spins on its own local node, eliminating cache line bouncing, which happens in TAS/TATAS/Ticket Spinlock. No false sharing.
-- **No Thundering Herd**: Unlock doesn't cause multiple threads to wake up, only the front of the queue one.
-- **Scalability**: Performance remains stable even with high thread contention
-- **RAII Guard**: Lock acquisition and release through scope-based RAII pattern
+* **FIFO Fairness** — Threads acquire the lock strictly in the order they arrived, ensuring fairness and preventing starvation.
+* **Cache-Friendly Spinning** — Each thread spins on a *private, local* flag in its own queue node, drastically reducing cache coherence traffic and eliminating false sharing.
+* **No Thundering Herd** — Upon unlock, only the *next* waiting thread is notified, avoiding unnecessary wakeups and contention storms.
+* **Excellent Scalability** — Scales efficiently under high contention, with performance that remains stable even as thread count increases.
+* **RAII-Based Guard** — Lock acquisition and release are managed safely through a scope-based RAII wrapper, preventing accidental unlock omissions and simplifying usage.
+* **Deterministic Behavior** — The lock queue ensures predictable acquisition order and timing characteristics, ideal for low-level concurrent systems.
 
 ### How It Works
 
@@ -65,7 +66,6 @@ See [`examples/sync/mcs_example.cpp`](../../../examples/sync/mcs_example.cpp) fo
 ### References
 
 - Original Paper: ["Algorithms for Scalable Synchronization on Shared-Memory Multiprocessors"](https://www.cs.rochester.edu/~scott/papers/1991_TOCS_synch.pdf) by John M. Mellor-Crummey and Michael L. Scott (1991)
-- [Wikipedia: MCS Lock](https://en.wikipedia.org/wiki/MCS_lock)
 
 ## Future Implementations
 
