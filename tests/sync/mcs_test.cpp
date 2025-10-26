@@ -105,4 +105,3 @@ TEST_F(MCSSpinlockTest, MultipleThreadsComplete) {
 
   EXPECT_EQ(acquisition_order.size(), num_threads);
 }
-

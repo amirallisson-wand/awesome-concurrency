@@ -1,0 +1,38 @@
+name: Format Check
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  check-format:
+    name: Check Code Formatting
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install clang-format
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y clang-format
+        
+    - name: Check formatting
+      run: |
+        # Find all C++ files and check if they need formatting
+        FILES=$(find . -regex '.*\.\(cpp\|hpp\|cc\|hh\|h\|cxx\|hxx\)$')
+        
+        # Run clang-format in dry-run mode
+        for file in $FILES; do
+          clang-format --dry-run --Werror "$file"
+        done
+        
+    - name: Format suggestion
+      if: failure()
+      run: |
+        echo "❌ Code formatting check failed!"
+        echo "Run 'cmake --build build --target format' to fix formatting issues."
+
