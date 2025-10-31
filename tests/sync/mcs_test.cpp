@@ -11,9 +11,7 @@ protected:
 };
 
 TEST_F(MCSSpinlockTest, BasicLockUnlock) {
-  // Should be able to acquire and release lock without issues
   thread::sync::QueueSpinLock::Guard guard{spinlock};
-  // Critical section
 }
 
 TEST_F(MCSSpinlockTest, SequentialLocks) {
