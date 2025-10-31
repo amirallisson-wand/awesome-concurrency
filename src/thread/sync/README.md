@@ -227,16 +227,55 @@ See [`tests/sync/ttas_spinlock_test.cpp`](../../../tests/sync/ttas_spinlock_test
 
 ---
 
+## Three-State Mutex
+
+**File:** [`mutex.hpp`](mutex.hpp)
+
+### Overview
+
+The Three-State Mutex is an efficient mutex implementation that combines fast userspace operations with kernel-level blocking. It uses a three-state design to optimize for the common case where locks are uncontended, avoiding expensive system calls on both lock and unlock operations.
+
+### Key Features
+
+* **Fast Path (No Syscalls)** — Lock and unlock operations complete in userspace without kernel involvement when uncontended
+* **Three-State Design** — Tracks whether the lock has waiting threads to minimize futex operations
+* **Futex-Based Blocking** — Uses Linux futex for efficient kernel-level blocking instead of busy-waiting
+
+### The Three States
+
+The mutex uses three distinct states to optimize performance:
+
+1. **`Unlocked` (0)** — Mutex is free and available for acquisition
+2. **`LockedNoWaiters` (1)** — Mutex is held, but no other threads are waiting
+3. **`LockedHasWaiters` (2)** — Mutex is held, and at least one thread is blocked waiting
+
+This state tracking allows the unlock operation to know whether it needs to wake waiting threads.
+
+**Slow Path (Contention):**
+1. Thread transitions state from `LockedNoWaiters` → `LockedHasWaiters`
+2. Thread calls `futex_wait()` to block in kernel until lock is released
+3. On unlock, holder sets state to `Unlocked` and calls `futex_wake()` to wake waiters
+4. Woken threads compete to acquire the now-free lock
+
+### Performance Characteristics
+
+* **Uncontended**: Extremely fast, single atomic CAS operation (comparable to spinlock)
+* **Low Contention**: Good performance, threads block briefly then acquire lock
+* **High Contention**: Excellent performance, threads sleep rather than spinning
+* **Long Critical Sections**: Ideal use case, blocked threads don't waste CPU
+* **Fairness**: No strict fairness, kernel scheduler determines wakeup order
+
 ## Comparison
 
-| Feature | MCS | Ticket Lock | TTAS |
-|---------|-----|-------------|------|
-| Fairness | ✅ FIFO | ✅ FIFO | ❌ None |
-| Scalability | ✅ Excellent | ⚠️ Moderate | ⚠️ Moderate |
-| Memory/Lock | O(1) + O(1)/thread | O(1) | O(1) |
-| Complexity | High | Low | Low |
-| Cache Traffic | Minimal | High | Medium |
-| Best For | High contention | Fair + simple | Low contention |
+| Feature | Three-State Mutex | MCS | Ticket Lock | TTAS |
+|---------|-------------------|-----|-------------|------|
+| Fairness | ⚠️ Kernel scheduler | ✅ FIFO | ✅ FIFO | ❌ None |
+| Scalability | ✅ Excellent | ✅ Excellent | ⚠️ Moderate | ⚠️ Moderate |
+| Memory/Lock | O(1) | O(1) + O(1)/thread | O(1) | O(1) |
+| Complexity | Medium | High | Low | Low |
+| Blocking | ✅ Kernel sleep | ❌ Busy-wait | ❌ Busy-wait | ❌ Busy-wait |
+| CPU Efficiency | ✅ No waste | ⚠️ Spins | ⚠️ Spins | ⚠️ Spins |
+| Cache Traffic | High | Minimal | High | Medium |
 
 ---
 
@@ -246,6 +285,5 @@ Planned synchronization primitives:
 - **CLH Spinlock** - Similar to MCS but using implicit queue
 - **Reader-Writer Locks** - Allow multiple readers or single writer
 - **Seqlock** - Optimistic read lock for data structures
-- **Three-state mutex**
-- **Condition variable**
-- **Semaphore**
+- **Condition Variable** - Wait/notify coordination with mutex
+- **Semaphore** - Counting synchronization primitive

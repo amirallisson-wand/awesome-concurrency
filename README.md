@@ -7,6 +7,8 @@ A C++ concurrency learning repository with implementations of various synchroniz
 ```
 awesome-concurrency/
 ├── src/
+│   ├── os/
+│   │   └── futex/         # Linux futex (fast userspace mutex) system calls
 │   └── thread/
 │       ├── sync/          # Synchronization primitives (spinlocks, mutexes, etc.)
 │       └── util/          # Utility functions (spin wait hints, etc.)
@@ -42,10 +44,15 @@ cmake --build build --target format
 
 ## Current Implementations
 
+### OS Primitives
+
+- **[Futex](src/os/futex/)** - Linux futex (fast userspace mutex) wrapper for efficient kernel-level blocking
+
 ### Synchronization Primitives
 
 See [src/thread/sync/](src/thread/sync/) for detailed documentation.
 
+- **Three-State Mutex** - Efficient mutex with fast-path (no syscall) lock/unlock and futex-based blocking
 - **MCS Spinlock** - Scalable queue-based spinlock with FIFO ordering and minimal cache traffic
 - **Ticket Lock** - Simple fair spinlock using ticket-based FIFO ordering
 - **TTAS Spinlock** - Test-and-Test-and-Set spinlock with reduced cache coherence traffic
