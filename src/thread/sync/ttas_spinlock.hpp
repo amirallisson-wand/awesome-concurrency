@@ -31,7 +31,7 @@ private:
     bool expected = false;
     return locked_.compare_exchange_weak(expected,
                                          /* desired */ true,
-                                         /* success */ std::memory_order::release,
+                                         /* success */ std::memory_order::acquire,
                                          /* failure */ std::memory_order::relaxed);
   }
 

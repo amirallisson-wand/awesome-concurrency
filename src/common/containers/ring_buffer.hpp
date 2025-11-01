@@ -2,15 +2,10 @@
 
 #include <atomic>
 #include <optional>
+#include <os/constants.hpp>
 #include <vector>
 
 namespace common::containers {
-
-#ifdef __cpp_lib_hardware_interference_size
-constexpr size_t kCacheLineSize = std::hardware_destructive_interference_size;
-#else
-constexpr size_t kCacheLineSize = 64;
-#endif
 
 template <typename T>
 class RingBuffer {
@@ -52,9 +47,9 @@ public:
 
 private:
   std::vector<T> data_{};
-  alignas(kCacheLineSize) size_t capacity_{0};
-  alignas(kCacheLineSize) std::atomic<size_t> readIdx_{0};
-  alignas(kCacheLineSize) std::atomic<size_t> writeIdx_{0};
+  alignas(os::kL1CacheLineSize) size_t capacity_{0};
+  alignas(os::kL1CacheLineSize) std::atomic<size_t> readIdx_{0};
+  alignas(os::kL1CacheLineSize) std::atomic<size_t> writeIdx_{0};
 };
 
 template <typename T>
@@ -102,11 +97,11 @@ public:
 
 private:
   std::vector<T> data_{};
-  alignas(kCacheLineSize) size_t capacity_{0};
-  alignas(kCacheLineSize) std::atomic<size_t> readIdx_{0};
-  alignas(kCacheLineSize) size_t writeIdxCached_{0};
-  alignas(kCacheLineSize) std::atomic<size_t> writeIdx_{0};
-  alignas(kCacheLineSize) size_t readIdxCached_{0};
+  alignas(os::kL1CacheLineSize) size_t capacity_{0};
+  alignas(os::kL1CacheLineSize) std::atomic<size_t> readIdx_{0};
+  alignas(os::kL1CacheLineSize) size_t writeIdxCached_{0};
+  alignas(os::kL1CacheLineSize) std::atomic<size_t> writeIdx_{0};
+  alignas(os::kL1CacheLineSize) size_t readIdxCached_{0};
 };
 
 }  // namespace common::containers

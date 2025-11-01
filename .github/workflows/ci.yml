@@ -43,3 +43,69 @@ jobs:
       run: |
         cd build
         ctest --output-on-failure --build-config ${{ matrix.build_type }}
+
+  address-sanitizer:
+    name: Build and Test (AddressSanitizer)
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake build-essential clang
+    
+    - name: Configure CMake with ASan
+      env:
+        CXX: clang++
+      run: |
+        cmake -B build-asan -S . \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DENABLE_ASAN=ON \
+          -DBUILD_TESTS=ON \
+          -DBUILD_EXAMPLES=OFF
+    
+    - name: Build
+      run: cmake --build build-asan --parallel
+    
+    - name: Run tests with ASan
+      run: |
+        cd build-asan
+        ctest --output-on-failure --parallel
+      env:
+        ASAN_OPTIONS: detect_leaks=1:symbolize=1:halt_on_error=1
+
+  thread-sanitizer:
+    name: Build and Test (ThreadSanitizer)
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y cmake build-essential clang
+    
+    - name: Configure CMake with TSan
+      env:
+        CXX: clang++
+      run: |
+        cmake -B build-tsan -S . \
+          -DCMAKE_BUILD_TYPE=Debug \
+          -DENABLE_TSAN=ON \
+          -DBUILD_TESTS=ON \
+          -DBUILD_EXAMPLES=OFF
+    
+    - name: Build
+      run: cmake --build build-tsan --parallel
+    
+    - name: Run tests with TSan
+      run: |
+        cd build-tsan
+        ctest --output-on-failure --parallel
+      env:
+        TSAN_OPTIONS: second_deadlock_stack=1:halt_on_error=1

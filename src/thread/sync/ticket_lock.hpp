@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <cstdint>
+#include <os/constants.hpp>
 #include <thread/util/spin_wait.hpp>
 
 namespace thread::sync {
@@ -23,7 +24,7 @@ public:
   }
 
   bool try_lock() {
-    Ticket current_owner_ticket = owner_ticket_.load(std::memory_order_acquire);
+    Ticket current_owner_ticket = owner_ticket_.load(std::memory_order_relaxed);
     return next_free_ticket_.compare_exchange_strong(/* expected */ current_owner_ticket,
                                                      /* desired */ current_owner_ticket + 1,
                                                      /* success */ std::memory_order_acquire,
@@ -35,8 +36,8 @@ public:
   }
 
 private:
-  std::atomic<Ticket> next_free_ticket_{0};
-  std::atomic<Ticket> owner_ticket_{0};
+  alignas(os::kL1CacheLineSize) std::atomic<Ticket> next_free_ticket_{0};
+  alignas(os::kL1CacheLineSize) std::atomic<Ticket> owner_ticket_{0};
 };
 
 }  // namespace thread::sync
