@@ -9,13 +9,17 @@ awesome-concurrency/
 ├── src/
 │   ├── os/
 │   │   └── futex/         # Linux futex (fast userspace mutex) system calls
-│   └── thread/
-│       ├── sync/          # Synchronization primitives (spinlocks, mutexes, etc.)
-│       └── util/          # Utility functions (spin wait hints, etc.)
+│   ├── thread/
+│   │   ├── sync/          # Synchronization primitives (spinlocks, mutexes, etc.)
+│   │   └── util/          # Utility functions (spin wait hints, etc.)
+│   └── common/
+│       └── common/
+│           └── containers/ # Concurrent data structures
 ├── examples/
 │   └── sync/              # Examples demonstrating synchronization primitives
 ├── tests/
-│   └── sync/              # Google Test-based unit tests
+│   ├── sync/              # Synchronization primitive tests
+│   └── containers/        # Concurrent data structure tests
 └── .vscode/               # VS Code tasks and shortcuts
 ```
 
@@ -56,6 +60,13 @@ See [src/thread/sync/](src/thread/sync/) for detailed documentation.
 - **MCS Spinlock** - Scalable queue-based spinlock with FIFO ordering and minimal cache traffic
 - **Ticket Lock** - Simple fair spinlock using ticket-based FIFO ordering
 - **TTAS Spinlock** - Test-and-Test-and-Set spinlock with reduced cache coherence traffic
+
+### Concurrent Data Structures
+
+See [src/common/common/containers/](src/common/common/containers/) for detailed documentation.
+
+- **RingBuffer** - Lock-free SPSC ring buffer with atomic operations
+- **FastRingBuffer** - Cache-optimized SPSC ring buffer with local index caching
 
 ### Utilities
 

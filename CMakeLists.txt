@@ -39,7 +39,7 @@ add_custom_target(run-tests
     COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
     WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
     COMMENT "Running all tests..."
-    DEPENDS mcs_test ticket_lock_test ttas_spinlock_test
+    DEPENDS mcs_test ticket_lock_test ttas_spinlock_test mutex_test ring_buffer_test fast_ring_buffer_test
 )
 
 add_custom_target(format

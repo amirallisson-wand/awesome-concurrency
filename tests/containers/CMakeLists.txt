@@ -1,0 +1,9 @@
+add_executable(ring_buffer_test ring_buffer_test.cpp)
+target_link_libraries(ring_buffer_test PRIVATE ring_buffer GTest::gtest_main)
+
+add_executable(fast_ring_buffer_test fast_ring_buffer_test.cpp)
+target_link_libraries(fast_ring_buffer_test PRIVATE ring_buffer GTest::gtest_main)
+
+include(GoogleTest)
+gtest_discover_tests(ring_buffer_test)
+gtest_discover_tests(fast_ring_buffer_test)
